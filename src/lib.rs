@@ -55,6 +55,13 @@ impl<T> Dirty<T> {
         }
     }
 
+    /// Write new value only if dirty, returning whether the value was written or not
+    pub fn write_dirty<F>(&mut self, f: F) -> bool
+    where F: Fn(&T) -> T {
+        if self.dirty { self.value = f(&self.value); }
+        self.dirty
+    }
+
     /// Consumes the wrapper and returns the enclosed value
     pub fn unwrap(self) -> T {
         self.value
@@ -116,6 +123,15 @@ mod tests {
         dirty.clear();
         assert!(!dirty.dirty());
         assert!(dirty.read_dirty() == None);
+    }
+
+    #[test]
+    fn write_dirty() {
+        let mut dirty = Dirty::new_clean(0);
+        assert!(!dirty.write_dirty(|_| 3));
+        *dirty.write() += 3;
+        assert!(dirty.write_dirty(|_| [1, 2, 3].iter().copied().reduce(|acc, x| acc + x).unwrap()));
+        assert_eq!(*dirty.read(), 6);
     }
 
     #[test]
